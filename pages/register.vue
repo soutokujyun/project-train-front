@@ -33,11 +33,11 @@ export default {
     data() {
         return {
             form: {
-                email: '',
+                email: '798795326@qq.com',
                 captcha: '',
-                nickname: '',
-                passwd: '',
-                repasswd: ''
+                nickname: 'Soutokujyun',
+                passwd: '123456',
+                repasswd: '123456'
             },
             rules: {
                 email: [
