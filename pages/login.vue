@@ -26,7 +26,7 @@ export default {
     layout: "login",
     data() {
         return {
-            modle: {
+            form: {
                 username: '',
                 passwd: '',
                 code: ''
