@@ -23,4 +23,17 @@
     margin: 160px auto 0;
     overflow: hidden;
 }
+.captcha-container {
+    width: 370px;
+}
+.captcha-container img {
+    position: absolute;
+    right: -160px;
+    width: 120px;
+    height: 40px;
+}
+.captcha-container .el-button {
+    position: absolute;
+    right: -120px;
+}
 </style>
