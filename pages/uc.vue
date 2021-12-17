@@ -102,16 +102,16 @@ export default {
             } else {
                 console.log("文件是图片")
             }
-            // const form = new FormData();
-            // form.append('name', 'file')
-            // form.append('file', this.file)
+            const form = new FormData();
+            form.append('name', 'file')
+            form.append('file', this.file)
 
-            // const ret = await this.$http.post('/uploadfile', form, {
-            //     onUploadProgress: progress=>{
-            //         this.uploadProgress = Number((( progress.loaded / progress.total ) * 100).toFixed(2))
-            //     }
-            // });
-            // this.imgSrc = '/api' + ret.data.url;
+            const ret = await this.$http.post('/uploadfile', form, {
+                onUploadProgress: progress=>{
+                    this.uploadProgress = Number((( progress.loaded / progress.total ) * 100).toFixed(2))
+                }
+            });
+            this.imgSrc = '/api' + ret.data.url;
         },
         handleFilerChange(e) {
             const [file] = e.target.files;
