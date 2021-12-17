@@ -15,7 +15,8 @@
     "core-js": "^3.15.1",
     "element-ui": "^2.15.2",
     "md5": "^2.3.0",
-    "nuxt": "^2.15.7"
+    "nuxt": "^2.15.7",
+    "spark-md5": "^3.0.2"
   },
   "devDependencies": {
     "@vue/test-utils": "^1.2.1",

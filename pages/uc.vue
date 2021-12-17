@@ -10,6 +10,10 @@
         <div>
             <el-button @click="uploadFile">上传</el-button>
         </div>
+        <h2>计算hash值</h2>
+        <div>
+            <el-progress :stroke-width="20" :text-inside="true" :percentage="hashProgress"></el-progress>
+        </div>
         <div v-if="imgSrc">
             <img :src="imgSrc" width="100">
         </div>
@@ -27,12 +31,14 @@
 </style>
 
 <script>
+const CHUNK_SIZE = 0.5 * 1024 * 1024;
 export default {
     data() {
         return {
             file: '',
             imgSrc: '',
-            uploadProgress: 0
+            uploadProgress: 0,
+            hashProgress: 0
         }
     },
     async mounted () {
@@ -95,13 +101,43 @@ export default {
             // 判断GIF
             return await this.isGif(file) || await this.isPng(file) || await this.isJpg(file)
         },
-        async uploadFile() {
-            if (!await this.isImage(this.file)) {
-                console.log("文件不是图片")
-                return
-            } else {
-                console.log("文件是图片")
+        createFileChunk(file, size = CHUNK_SIZE) {
+            const chunks = [];
+            let cur = 0
+            while(cur < file.size) {
+                chunks.push({index: cur, file: file.slice(cur, cur + size)})
+                cur += size
             }
+            return chunks
+        },
+        async calculateHashWork() {
+            return new Promise(resolve=>{
+                this.worker = new Worker('/hash.js');
+                this.worker.postMessage({chunks: this.chunks})
+                this.worker.onmessage = e => {
+                    const {progress, hash} = e.data
+                    this.hashProgress = Number(progress.toFixed(2))
+                    if (hash) {
+                        resolve(hash)
+                    }
+                }
+            })
+        },
+        async calculateHashIdel() {
+
+        },
+        async uploadFile() {
+            // if (!await this.isImage(this.file)) {
+            //     console.log("文件不是图片")
+            //     return
+            // } else {
+            //     console.log("文件是图片")
+            // }
+
+            this.chunks = this.createFileChunk(this.file)
+            const hash = await this.calculateHashWork()
+            console.log('文件hash', hash);
+            return 
             const form = new FormData();
             form.append('name', 'file')
             form.append('file', this.file)
