@@ -31,7 +31,8 @@
 </style>
 
 <script>
-const CHUNK_SIZE = 0.5 * 1024 * 1024;
+const CHUNK_SIZE = 0.1 * 1024 * 1024;
+import sparkMD5 from "spark-md5"
 export default {
     data() {
         return {
@@ -124,7 +125,75 @@ export default {
             })
         },
         async calculateHashIdel() {
+            const chunks = this.chunks
+            return new Promise(resolve=>{
+                const spark = new sparkMD5.ArrayBuffer()
+                let count = 0
+                const appendToSpark = async file => {
+                    return new Promise(resolve => {
+                        const reader = new FileReader()
+                        reader.readAsArrayBuffer(file)
+                        reader.onload = e => {
+                            spark.append(e.target.result)
+                            resolve()
+                        }
+                    })
+                }
+                const workLoop = async deadline =>{
+                    while(count<chunks.length && deadline.timeRemaining() > 1) {
+                        // 空闲时间，有任务
+                        await appendToSpark(chunks[count].file)
+                        count++
+                        if (count < chunks.length) {
+                            this.hashProgress = Number((100*count/chunks.length).toFixed(2))
+                        } else {
+                            this.hashProgress = 100
+                            resolve(spark.end())
+                        }
 
+                    }
+                    window.requestIdleCallback(workLoop)
+                }
+
+                window.requestIdleCallback(workLoop)
+            })
+        },
+        async calculateHashSample() {
+            // 布隆过滤器，牺牲精准度，判断文件是否存在
+            // 1G文件，抽样后5M以内
+            // hash一样，文件不一定一样
+            // hash不一样，文件一点不一样
+            return new Promise(resolve => {
+                const spark = new sparkMD5.ArrayBuffer()
+                const reader = new FileReader()
+                const file = this.file
+                const size = file.size
+
+                const offset = 2 * 1024 * 1024
+                // 首2M 中间每M取首中尾各2个字节 尾2M
+                let chunks = [file.slice(0, offset)]
+                let cur = offset;
+                while (cur < size) {
+                    if (cur+offset >= size) {
+                        // 最后一个区块
+                        chunks.push(file.slice(cur, cur+offset))
+                    } else {
+                        // 中间区块
+                        const mid = (cur+offset) >> 1
+                        const end = cur + offset
+                        chunks.push(file.slice(cur, cur+2))
+                        chunks.push(file.slice(mid, mid+2))
+                        chunks.push(file.slice(end - 2, end))
+                    }
+                    cur += offset
+                }
+                reader.readAsArrayBuffer(new Blob(chunks))
+                reader.onload = e => {
+                    spark.append(e.target.result)
+                    this.hashProgress = 100
+                    resolve(spark.end())
+                }
+            })
         },
         async uploadFile() {
             // if (!await this.isImage(this.file)) {
@@ -134,9 +203,15 @@ export default {
             //     console.log("文件是图片")
             // }
 
-            this.chunks = this.createFileChunk(this.file)
-            const hash = await this.calculateHashWork()
-            console.log('文件hash', hash);
+            // this.chunks = this.createFileChunk(this.file)
+            // const hash = await this.calculateHashWork()
+            // const hash1 = await this.calculateHashIdel()
+            // console.log('文件hash', hash);
+            // console.log('文件hash', hash1);
+
+            // 抽样hash 不算全量 ： 大文件优化方案： 首2M 中间每M取首中尾各2个字节 尾2M
+            const hash = await this.calculateHashSample()
+            console.log(hash);
             return 
             const form = new FormData();
             form.append('name', 'file')
