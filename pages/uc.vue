@@ -30,7 +30,9 @@
                             'uploading': chunk.progress > 0  && chunk.progress < 100,
                             'success': chunk.progress == 100,
                             'error': chunk.progress < 0
-                        }">
+                        }"
+                        :style="{height: chunk.progress+'%'}"    
+                    >
                         <i class="el-icon-loading" style="color: #f56c6c" v-if="chunk.progress < 100 && chunk.progress > 0"></i>    
                     </div>
                 </div>
@@ -285,10 +287,11 @@ export default {
                     hash,
                     name,
                     index,
-                    chunk: chunk.file
+                    chunk: chunk.file,
+                    progress: 0
                 }
             })
-            // await this.uploadChunks()
+            await this.uploadChunks()
             
         },
         async uploadChunks() {
