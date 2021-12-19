@@ -280,6 +280,7 @@ export default {
             // 推荐：抽样hash 不算全量 ： 大文件优化方案： 首2M 中间每M取首中尾各2个字节 尾2M
             const chunks = this.createFileChunk(this.file)
             const hash = await this.calculateHashSample()
+            this.hash = hash
             this.chunks = chunks.map((chunk, index) => {
                 // 切片名字 hash + index
                 const name = hash + '-' + index
@@ -292,7 +293,14 @@ export default {
                 }
             })
             await this.uploadChunks()
-            
+            await this.mergeRequest()
+        },
+        async mergeRequest() {
+            this.$http.post('/mergefile', {
+                ext: this.file.name.split('.').pop(),
+                size: CHUNK_SIZE,
+                hash: this.hash
+            })
         },
         async uploadChunks() {
 
