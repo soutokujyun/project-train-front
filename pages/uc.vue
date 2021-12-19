@@ -280,7 +280,7 @@ export default {
             const hash = await this.calculateHashSample()
             this.chunks = chunks.map((chunk, index) => {
                 // 切片名字 hash + index
-                const name = hans + '-' + index
+                const name = hash + '-' + index
                 return {
                     hash,
                     name,
@@ -288,7 +288,7 @@ export default {
                     chunk: chunk.file
                 }
             })
-            await this.uploadChunks()
+            // await this.uploadChunks()
             
         },
         async uploadChunks() {
