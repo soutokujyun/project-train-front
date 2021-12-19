@@ -5,7 +5,7 @@
             <input type="file" @change="handleFilerChange">
         </div>
         <div>
-            <el-progress :stroke-width="20" :text-inside="true" :percentage="uploadProgress"></el-progress>
+            <!-- <el-progress :stroke-width="20" :text-inside="true" :percentage="uploadProgress"></el-progress> -->
         </div>
         <div>
             <el-button @click="uploadFile">上传</el-button>
@@ -15,8 +15,25 @@
             <el-progress :stroke-width="20" :text-inside="true" :percentage="hashProgress"></el-progress>
         </div>
         <div>
-            <div class="cube-container">
-                
+            <!-- chunks.progress
+            progress < 0 报错显示红色
+            == 100 成功
+            别的数字 方块高度显示 -->
+            <!-- 尽可能让方块看起来是正方形
+            比如10个方块 4 * 4
+            9 3 * 3
+            100 10 * 10 -->
+            <div class="cube-container" :style="{width: cubeWidth + 'px'}">
+                <div class="cube" v-for="chunk in chunks" :key="chunk.name">
+                    <div 
+                        :class="{
+                            'uploading': chunk.progress > 0  && chunk.progress < 100,
+                            'success': chunk.progress == 100,
+                            'error': chunk.progress < 0
+                        }">
+                        <i class="el-icon-loading" style="color: #f56c6c" v-if="chunk.progress < 100 && chunk.progress > 0"></i>    
+                    </div>
+                </div>
             </div>
         </div>
         <div v-if="imgSrc">
@@ -33,6 +50,26 @@
     text-align: center;
     vertical-align: middle; 
 }
+.cube-container {
+
+}
+.cube-container .cube{
+    width: 14px;
+    height: 14px;
+    line-height: 12px;
+    border: 1px solid black;
+    background: #eee;
+    float: left;
+}
+.cube-container .cube > .success {
+    background: green;
+}
+.cube-container .cube > .uploading {
+    background: blue;
+}
+.cube-container .cube > .error {
+    background: red;
+}
 </style>
 
 <script>
@@ -43,8 +80,22 @@ export default {
         return {
             file: '',
             imgSrc: '',
-            uploadProgress: 0,
-            hashProgress: 0
+            // uploadProgress: 0,
+            hashProgress: 0,
+            chunks: []
+        }
+    },
+    computed: {
+        cubeWidth() {
+            return Math.ceil(Math.sqrt(this.chunks.length)) * 16
+        },
+        uploadProgress(){
+            if (!this.file && this.chunks.length) {
+                return 0
+            } 
+            const loaded = this.chunks.map(item => item.chunks.size * item.progress)
+                                    .reduce((acc, cur) => acc + cur, 0)
+            return Number(((loaded * 100) / this.file.size).toFixed(2))
         }
     },
     async mounted () {
