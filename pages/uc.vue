@@ -14,6 +14,11 @@
         <div>
             <el-progress :stroke-width="20" :text-inside="true" :percentage="hashProgress"></el-progress>
         </div>
+        <div>
+            <div class="cube-container">
+                
+            </div>
+        </div>
         <div v-if="imgSrc">
             <img :src="imgSrc" width="100">
         </div>
@@ -208,21 +213,51 @@ export default {
             // const hash1 = await this.calculateHashIdel()
             // console.log('文件hash', hash);
             // console.log('文件hash', hash1);
+            // const form = new FormData();
+            // form.append('name', 'file')
+            // form.append('file', this.file)
 
-            // 抽样hash 不算全量 ： 大文件优化方案： 首2M 中间每M取首中尾各2个字节 尾2M
+            // const ret = await this.$http.post('/uploadfile', form, {
+            //     onUploadProgress: progress=>{
+            //         this.uploadProgress = Number((( progress.loaded / progress.total ) * 100).toFixed(2))
+            //     }
+            // });
+            // this.imgSrc = '/api' + ret.data.url;
+
+            // 推荐：抽样hash 不算全量 ： 大文件优化方案： 首2M 中间每M取首中尾各2个字节 尾2M
+            const chunks = this.createFileChunk(this.file)
             const hash = await this.calculateHashSample()
-            console.log(hash);
-            return 
-            const form = new FormData();
-            form.append('name', 'file')
-            form.append('file', this.file)
-
-            const ret = await this.$http.post('/uploadfile', form, {
-                onUploadProgress: progress=>{
-                    this.uploadProgress = Number((( progress.loaded / progress.total ) * 100).toFixed(2))
+            this.chunks = chunks.map((chunk, index) => {
+                // 切片名字 hash + index
+                const name = hans + '-' + index
+                return {
+                    hash,
+                    name,
+                    index,
+                    chunk: chunk.file
                 }
-            });
-            this.imgSrc = '/api' + ret.data.url;
+            })
+            await this.uploadChunks()
+            
+        },
+        async uploadChunks() {
+
+            const requests = this.chunks.map((chunk, index) => {
+                const form = new FormData()
+                form.append('chunk', chunk.chunk)
+                form.append('name', chunk.name)
+                form.append('hash', chunk.hash)
+                // form.append('index', chunk.index)
+                return form
+            }).map((form, index) => this.$http.post('/uploadfile', form, {
+                onUploadProgress: progress=>{
+                    // 不是整体的进度条，每个区块有自己的进度条
+                    this.chunks[index].progress = Number((( progress.loaded / progress.total ) * 100).toFixed(2))
+                }
+            }))
+            // @todo 并发数量控制
+            await Promise.all(requests)
+
         },
         handleFilerChange(e) {
             const [file] = e.target.files;
