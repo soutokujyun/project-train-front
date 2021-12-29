@@ -281,6 +281,17 @@ export default {
             const chunks = this.createFileChunk(this.file)
             const hash = await this.calculateHashSample()
             this.hash = hash
+            // hash计算完，问一下后端，文件是否上传，如果没有，是否有存在的切片
+            const { data:{ uploaded, uploadedList } } = await this.$http.post('/checkfile', {
+                hash: this.hash,
+                ext: this.file.name.split('.').pop()
+            })
+
+            if (uploaded) {
+                // 秒传
+                return this.$message.success('秒传成功')
+            }
+
             this.chunks = chunks.map((chunk, index) => {
                 // 切片名字 hash + index
                 const name = hash + '-' + index
@@ -289,10 +300,11 @@ export default {
                     name,
                     index,
                     chunk: chunk.file,
-                    progress: 0
+                    // 设置进度条，已经上传的设置为100
+                    progress: uploadedList.indexOf(name) > -1 ? 100 : 0
                 }
             })
-            await this.uploadChunks()
+            await this.uploadChunks(uploadedList)
             await this.mergeRequest()
         },
         async mergeRequest() {
@@ -302,21 +314,23 @@ export default {
                 hash: this.hash
             })
         },
-        async uploadChunks() {
+        async uploadChunks(uploadedList) {
 
-            const requests = this.chunks.map((chunk, index) => {
-                const form = new FormData()
-                form.append('chunk', chunk.chunk)
-                form.append('name', chunk.name)
-                form.append('hash', chunk.hash)
-                // form.append('index', chunk.index)
-                return form
-            }).map((form, index) => this.$http.post('/uploadfile', form, {
-                onUploadProgress: progress=>{
-                    // 不是整体的进度条，每个区块有自己的进度条
-                    this.chunks[index].progress = Number((( progress.loaded / progress.total ) * 100).toFixed(2))
-                }
-            }))
+            const requests = this.chunks
+                .filter(chunk=>uploadedList.indexOf(chunk.name)==-1)
+                .map((chunk, index) => {
+                    const form = new FormData()
+                    form.append('chunk', chunk.chunk)
+                    form.append('name', chunk.name)
+                    form.append('hash', chunk.hash)
+                    // form.append('index', chunk.index)
+                    return {form, index: chunk.index}
+                }).map(({form, index}) => this.$http.post('/uploadfile', form, {
+                    onUploadProgress: progress=>{
+                        // 不是整体的进度条，每个区块有自己的进度条
+                        this.chunks[index].progress = Number((( progress.loaded / progress.total ) * 100).toFixed(2))
+                    }
+                }))
             // @todo 并发数量控制
             await Promise.all(requests)
 
