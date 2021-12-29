@@ -75,7 +75,7 @@
 </style>
 
 <script>
-const CHUNK_SIZE = 0.1 * 1024 * 1024;
+const CHUNK_SIZE = 1 * 1024 * 1024;
 import sparkMD5 from "spark-md5"
 export default {
     data() {
