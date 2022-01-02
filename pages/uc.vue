@@ -75,7 +75,7 @@
 </style>
 
 <script>
-const CHUNK_SIZE = 1 * 1024 * 1024;
+const CHUNK_SIZE = Math.floor(0.1 * 1024 * 1024);
 import sparkMD5 from "spark-md5"
 export default {
     data() {
@@ -254,6 +254,7 @@ export default {
             })
         },
         async uploadFile() {
+            if (!this.file) return
             // if (!await this.isImage(this.file)) {
             //     console.log("文件不是图片")
             //     return
@@ -324,16 +325,77 @@ export default {
                     form.append('name', chunk.name)
                     form.append('hash', chunk.hash)
                     // form.append('index', chunk.index)
-                    return {form, index: chunk.index}
-                }).map(({form, index}) => this.$http.post('/uploadfile', form, {
-                    onUploadProgress: progress=>{
-                        // 不是整体的进度条，每个区块有自己的进度条
-                        this.chunks[index].progress = Number((( progress.loaded / progress.total ) * 100).toFixed(2))
-                    }
-                }))
+                    return {form, index: chunk.index, error: 0}
+                })
+                // .map(({form, index}) => this.$http.post('/uploadfile', form, {
+                //     onUploadProgress: progress=>{
+                //         // 不是整体的进度条，每个区块有自己的进度条
+                //         this.chunks[index].progress = Number((( progress.loaded / progress.total ) * 100).toFixed(2))
+                //     }
+                // }))
+            // await Promise.all(requests)
             // @todo 并发数量控制
-            await Promise.all(requests)
+            // 尝试申请tcp链接过多，也会造成卡顿
+            // 异步并发数控制
+            await this.sendRequest(requests)
+        },
+        // TCP慢启动，先上传一个初始区块，比如10kb，根据上传时间，决定下一个区块是20k，还是50k,还是5k
+        // 在下一个一样的逻辑，可能变成100k,200k,或者2k
+        // 上传可能报错
+        // 报错之后进度条变红，开始重试
+        // 一个切片重试失败三次，整体全部终止
 
+        async sendRequest(chunks, limit = 3) {
+            // limit 并发数量
+            // 一个数组，数组长度是limit
+            // [task1,task2, task3] [task2,task3] [task2,task3,task4]
+            return new Promise((resolve, reject) => {
+                const len = chunks.length
+                let count = 0
+                let isStop = false
+
+                const start = async () => {
+                    if (isStop) return;
+                    const task = chunks.shift()
+                    if (task) {
+                        const { form, index } = task
+                        try {
+                            await this.$http.post('/uploadfile', form, {
+                                onUploadProgress: progress=>{
+                                    // 不是整体的进度条，每个区块有自己的进度条
+                                    this.chunks[index].progress = Number((( progress.loaded / progress.total ) * 100).toFixed(2))
+                                }
+                            })
+
+                            if (count >= len - 1) {
+                                resolve()
+                            } else {
+                                count++
+                                start()
+                            }
+                        } catch (error) {
+                            // 进度条标红
+                            this.chunks[index].progress = -1
+                            if (task.error < 3) {
+                                task.error++
+                                // 重试任务
+                                chunks.unshift(task)
+                                start()
+                            } else {
+                                // 错误3次，直接结束
+                                isStop = true
+                                reject()
+                            }
+                        }
+                    }
+                }
+
+                while (limit > 0) {
+                    // 启动limit个任务
+                    start()
+                    limit -= 1
+                }
+            })
         },
         handleFilerChange(e) {
             const [file] = e.target.files;
