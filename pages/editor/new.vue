@@ -6,7 +6,7 @@
         <el-row>
             <el-col :span="12">
                 <!-- markdown编辑器的基本操作 -->
-                <textarea class="md-editor" :value="content" @input="update" ></textarea>
+                <textarea ref="editor" class="md-editor" :value="content" @input="update" ></textarea>
             </el-col>
             <el-col :span="12">
                 <div class="markdown-body" v-html="compiledContent"></div>
@@ -16,18 +16,35 @@
 </template>
 
 <script>
-    import {marked} from 'marked'
+    import { marked } from 'marked'
+    import hljs from 'highlight.js/lib/core';
+    import javascript from 'highlight.js/lib/languages/javascript';
+    hljs.registerLanguage('javascript', javascript);
+    import 'highlight.js/styles/github.css';
     export default {
         data() {
             return {
                 content: `# 斗鱼直播
-                * 上课
-                * 看视频
-                * 游戏`
+* 上课
+* 看视频
+* 游戏
+\`\`\`javascript
+    let a = 1
+    console.log(a)
+\`\`\`
+                `
             }
         },
         mounted () {
             this.timer = null;
+            this.bindEvents()
+
+            marked.setOptions({
+                rendered: new marked.Renderer(),
+                highlight: function(code) {
+                    return hljs.highlightAuto(code).value
+                }
+            })
         },
         computed: {
             compiledContent() {
@@ -35,6 +52,20 @@
             }
         },
         methods: {
+            bindEvents() {
+                this.$refs.editor.addEventListener('paste', async e => {
+                    const files = e.clipboardData.files
+                    console.log(e);
+                    // todo 文件上传
+                })
+                this.$refs.editor.addEventListener('drop', async e => {
+                    const files = e.dataTransfer.files
+                    console.log(e);
+                    
+                    e.preventDefault()
+                    // todo 文件上传
+                })
+            },
             submit() {
                 
             },
