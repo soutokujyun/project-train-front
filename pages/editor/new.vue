@@ -1,5 +1,11 @@
 <template>
     <div>
+        <!-- <div contenteditable="true"></div>
+        document.execCommond('') -->
+        <!-- 1. 刚开始使用第三方 tinyMce, wangEditor
+        2. 开源的定制的 slate.js
+        3. 有专门的编辑器开发团队，自己定制，非常复杂，word在线版
+        计算位置，定位，样式，实现一个简单的浏览器工作量差不多 -->
         <div class="write-btn">
             <el-button @click="submit" type="primary">提交</el-button>
         </div>
@@ -66,8 +72,12 @@
                     // todo 文件上传
                 })
             },
-            submit() {
-                
+            async submit() {
+                // 文章列表-虚拟列表， 点赞，关注，草稿
+                let ret = await this.$http.post('/article/create', {
+                    content: this.content, // selected： false
+                    compiledContent: this.compiledContent // 读取的时候默认只显示这个
+                })
             },
             update(e) {
                 clearTimeout(this.timer)
