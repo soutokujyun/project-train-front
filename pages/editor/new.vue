@@ -74,6 +74,7 @@
             },
             async submit() {
                 // 文章列表-虚拟列表， 点赞，关注，草稿
+                // user => article 一对多
                 let ret = await this.$http.post('/article/create', {
                     content: this.content, // selected： false
                     compiledContent: this.compiledContent // 读取的时候默认只显示这个
