@@ -2,10 +2,8 @@
     <el-container>
         <el-header>
             <el-menu
-                :default-active="activeIndex"
                 class="el-menu-demo"
                 mode="horizontal"
-                @select="handleSelect"
             >
                 <el-menu-item index="0">
                     <img src="/logo.png" alt="" />

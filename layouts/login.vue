@@ -10,8 +10,8 @@
 export default {};
 </script>
 
-<style lang="scss" scoped>
-$bg: #2d3a4b;
+<style>
+/* $bg: #2d3a4b;
 $dark_gray: #889aa4;
 $light_gray: #eee;
 .login-container {
@@ -19,7 +19,7 @@ $light_gray: #eee;
     width: 100%;
     background-color: $bg;
     overflow: hidden;
-}
+} */
 </style>
 
 <style>
