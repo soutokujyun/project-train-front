@@ -16,6 +16,7 @@
 </template>
 
 <script>
+import JSZip from 'jszip'
 export default {
   data() {
     return {
@@ -36,20 +37,36 @@ export default {
     });
   },
   methods: {
+    generateZipFile(zipName, files, options = {type: "blob", compression: "DEFLATE"}) {
+      return new Promise((resolve) => {
+          const zip = new JSZip()
+          for(let i = 0; i < files.length; i++) {
+            zip.file(files[i].webkitRelativePath, files[i])
+          }
+          zip.generateAsync(options).then((blob) => {
+            zipName = zipName || Date.now() + '.zip';
+            const zipFile = new File([blob], zipName, {
+              type: 'application/zip'
+            });
+            resolve(zipFile)
+          })
+      })
+    },
     async uploadFile() {
       if (!this.files.length) return;
+      // 获取压缩包信息
+      let webkitRelativePath = this.files[0].webkitRelativePath;
+      let zipFileName = webkitRelativePath.split("/")[0] + '.zip';
+      // 打包
+      let zipFile = await this.generateZipFile(zipFileName, this.files)
       const form = new FormData();
-      this.files.forEach(file => {
-        form.append('file', file, file.webkitRelativePath.replace(/\//g, "@"))
-      });
+      form.append('file', zipFile)
 
-      const ret = await this.$http.post('/upload/directory', form, {
+      const ret = await this.$http.post('/upload/single', form, {
         onUploadProgress: progress => {
           this.uploadProgress = Number((( progress.loaded / progress.total ) * 100).toFixed(2))
         }
       })
-      console.log(ret)
-      // this.imgSrc = '/api' + ret.data.url
     },
     handleFileChange(e) {
       const files = e.target.files;

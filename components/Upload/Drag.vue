@@ -1,0 +1,147 @@
+<template>
+  <div class="upload-file">
+    <div ref="drag" class="drag">
+      <i class="el-icon-plus avatar-uploader-icon"></i>
+      <input
+        ref="file"
+        type="file"
+        style="display: none"
+        multiple
+        @change="handleFileChange"
+      />
+    </div>
+    <el-progress
+      :stroke-width="20"
+      :text-inside="true"
+      :percentage="uploadProgress"
+    ></el-progress>
+    <el-button style="margin-top: 10px" @click="uploadFile">上传</el-button>
+  </div>
+</template>
+
+<script>
+export default {
+  data() {
+    return {
+      files: [],
+      uploadProgress: 0,
+    };
+  },
+  mounted() {
+    this.bindEvents();
+  },
+  methods: {
+    bindEvents() {
+      const drag = this.$refs.drag;
+      drag.addEventListener("click", (e) => {
+        e.preventDefault();
+        if (document.all) {
+          this.$refs.file.click();
+        } else {
+          var event = document.createEvent("MouseEvent");
+          event.initEvent("click", false, true);
+          this.$refs.file.dispatchEvent(event);
+        }
+      });
+      drag.addEventListener("dragover", (e) => {
+        drag.style.borderColor = "#1e80ff";
+        e.preventDefault();
+      });
+      drag.addEventListener("dragleave", (e) => {
+        drag.style.borderColor = "#eee";
+        e.preventDefault();
+      });
+      drag.addEventListener("drop", (e) => {
+        const items = e.dataTransfer.items;
+
+        if (items && items.length) {
+          for (let i = 0; i < items.length; i++) {
+            const item = items[i];
+            if (item.kind === "file") {
+              if (item.webkitGetAsEntry().isFile) {
+                const file = item.getAsFile();
+                this.files.push(file);
+              } else {
+                this.scanFiles(item.webkitGetAsEntry());
+              }
+            }
+          }
+        }
+        drag.style.borderColor = "#eee";
+        e.preventDefault();
+      });
+    },
+
+    scanFiles(item) {
+      const self = this
+      if (item.isDirectory) {
+        const directoryReader = item.createReader();
+        const readEntriesFn = (entries) => {
+          entries.forEach(entry => {
+            if (entry.isFile) {
+              entry.file((file) => {
+                // 修改文件名为路径+名称
+                file['fullPath'] = entry.fullPath.replace(/\//g, "@")
+                self.files.push(file)
+              })
+            } else {
+              this.scanFiles(entry)
+            }
+          })
+        };
+        directoryReader.readEntries(readEntriesFn);
+      }
+    },
+
+    async uploadFile() {
+      if (!this.files.length) return;
+      const form = new FormData();
+      this.files.forEach((file) => {
+        form.append("file", file, file.fullPath || file.webkitRelativePath.replace(/\//g, "@"));
+      });
+
+      const ret = await this.$http.post("/upload/directory", form, {
+        onUploadProgress: (progress) => {
+          this.uploadProgress = Number(
+            ((progress.loaded / progress.total) * 100).toFixed(2)
+          );
+        },
+      });
+      console.log(ret);
+      // this.imgSrc = '/api' + ret.data.url
+    },
+    handleFileChange(e) {
+      const files = e.target.files;
+      if (!files) return;
+      this.files = Array.from(files);
+    },
+  },
+};
+</script>
+
+<style lang="scss" scoped>
+.upload-file {
+  text-align: center;
+  .drag {
+    margin: 0 auto 5px;
+    width: 178px;
+    height: 178px;
+    line-height: 178px;
+    border: 2px dashed #eee;
+    text-align: center;
+    vertical-align: middle;
+    cursor: pointer;
+    .avatar-uploader-icon {
+      font-size: 28px;
+      color: #8c939d;
+      width: 178px;
+      height: 178px;
+      line-height: 178px;
+      text-align: center;
+    }
+    &:hover {
+      border-color: #1e80ff;
+    }
+  }
+}
+</style>

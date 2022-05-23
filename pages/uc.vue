@@ -25,15 +25,15 @@
             100 10 * 10 -->
             <div class="cube-container" :style="{width: cubeWidth + 'px'}">
                 <div class="cube" v-for="chunk in chunks" :key="chunk.name">
-                    <div 
+                    <div
                         :class="{
                             'uploading': chunk.progress > 0  && chunk.progress < 100,
                             'success': chunk.progress == 100,
                             'error': chunk.progress < 0
                         }"
-                        :style="{height: chunk.progress+'%'}"    
+                        :style="{height: chunk.progress+'%'}"
                     >
-                        <i class="el-icon-loading" style="color: #f56c6c" v-if="chunk.progress < 100 && chunk.progress > 0"></i>    
+                        <i class="el-icon-loading" style="color: #f56c6c" v-if="chunk.progress < 100 && chunk.progress > 0"></i>
                     </div>
                 </div>
             </div>
@@ -50,11 +50,11 @@
     line-height: 200px;
     border: 2px dashed #eee;
     text-align: center;
-    vertical-align: middle; 
+    vertical-align: middle;
 }
-.cube-container {
+/* .cube-container {
 
-}
+} */
 .cube-container .cube{
     width: 14px;
     height: 14px;
@@ -94,7 +94,7 @@ export default {
         uploadProgress(){
             if (!this.file && this.chunks.length) {
                 return 0
-            } 
+            }
             const loaded = this.chunks.map(item => item.chunks.size * item.progress)
                                     .reduce((acc, cur) => acc + cur, 0)
             return Number(((loaded * 100) / this.file.size).toFixed(2))
@@ -399,7 +399,7 @@ export default {
         },
         handleFilerChange(e) {
             const [file] = e.target.files;
-            if (!file) return  
+            if (!file) return
             this.file = file;
         }
     },
